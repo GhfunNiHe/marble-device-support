@@ -8,7 +8,7 @@ Provides userland configuration, ALSA UCM2 audio profiles, udev rules, performan
 
 ## Contents
 
-* **ALSA UCM2**: Stereo AW88263S speakers (HiFi profile with earpiece call routing) and WCD9385 microphone capture.
+* **ALSA UCM2**: Stereo speakers, WCD9385 3.5 mm headphones, and internal/headset microphone capture.
 * **udev rules**:
   * `60-marble-storage.rules`: UFS storage scheduler tuning.
   * `61-marble-gpu.rules`: Adreno 725 runtime autosuspend delay and devfreq floor.
@@ -41,6 +41,33 @@ make
 ```bash
 sudo make install PREFIX=/usr
 ```
+
+### Wired audio requirements
+
+The UCM profile requires a matching kernel device tree and AudioReach topology:
+
+* `WCD Playback` DAI link on `RX_CODEC_DMA_RX_0`, plus the WCD headphone DAPM routes.
+* An RX0 playback graph in `SM8475-Xiaomi-Marble-tplg.bin`, alongside the existing
+  TDM speaker and TX3 capture graphs.
+* An MBHC headset threshold matched to MICBIAS2. The tested 2.75 V bias uses a
+  2.6 V headset threshold; retaining the 1.7 V reference threshold misclassifies
+  the tested microphone headset as line-out.
+
+Install these dependencies together with this profile. The earlier
+speaker-only topology lacks controls used by the new UCM verb.
+
+`Headphones` and `Headset` use ALSA jack controls to switch output and input
+when plugged in, with `Speaker` and `Mic` as the unplugged paths. Playback uses
+PCM 1 for headphones and PCM 0 for speakers; capture uses PCM 2. Capture needs
+two PCM channels even though the tested headset microphone supplies a mono
+signal on channel 0. The verified headphone path is S16_LE, 48 kHz, stereo.
+Codec capabilities alone do not establish 24-bit / 192 kHz support end to end.
+
+Validated on the existing `7.2.8-sm8475-ged12055` kernel with the matching DTB
+and topology: stereo headphone listening, external microphone quiet/tap/speech
+recording, physical jack switching, and single-button `KEY_MEDIA` input events.
+Speaker output after unplugging was also confirmed by listening. The profile
+starts with conservative headphone and speaker gains.
 
 ### Enabling Services (systemd)
 
