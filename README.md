@@ -69,6 +69,47 @@ recording, physical jack switching, and single-button `KEY_MEDIA` input events.
 Speaker output after unplugging was also confirmed by listening. The profile
 starts with conservative headphone and speaker gains.
 
+### Additional Debian/Ubuntu integration
+
+This fork also owns the runtime support previously kept in Debian packaging:
+
+* `src/marble-imsctl.c`: QMI IMS enablement and status/check commands.
+* `scripts/marble-helper`: factory MAC restoration, sensor recovery, modem
+  recovery/SIM wait, and IMS startup; service units live in `systemd/`.
+* `modprobe/`, `network-manager/`, and `camera/`: WLAN load ordering, an opt-in
+  China Telecom APN, and the IMX355 black-level configuration.
+* `systemd/debian/`: hexagonrpcd wrapper and sensor restart drop-ins.
+
+The base build defaults to `WITH_IMS=0`. For the full Debian integration use
+libqmi >= 1.39.1, libqrtr-glib, GLib/GIO development packages and pkg-config:
+
+```sh
+make WITH_IMS=1
+sudo make WITH_IMS=1 PREFIX=/usr install-debian
+```
+
+`DESTDIR` is supported for staging. `install-debian` includes the base install,
+selects `hexagonrpcd.service`, installs the recovery units, and masks the
+competing `bootmac-bluetooth.service`. It does not start any services.
+Its WLAN blacklist requires `marble-mac-restore.service` to be enabled and a
+kernel that reads the persist-derived `wlan_mac.bin`; keep these together.
+`ct-data` stays disconnected until explicitly activated and is installed with
+mode 0600. Camera tuning currently supplies black level only.
+
+After installation on a compatible Debian system, enable the additional units:
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable marble-mac-restore.service marble-sensors-watch.service
+sudo systemctl enable marble-modem-recover.timer marble-ims-enable.service
+```
+
+IMS additionally requires the modem/QRTR stack and 81voltd; omit the IMS unit
+when building with `WITH_IMS=0`. Debian packages still own dependencies,
+maintainer hooks and `dh_fixperms` handling. On other distributions adapt
+service names and package file manifests before selecting this integration.
+The base `install` does not install the Debian recovery/configuration set.
+
 ### Enabling Services (systemd)
 
 ```bash
