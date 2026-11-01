@@ -69,6 +69,33 @@ recording, physical jack switching, and single-button `KEY_MEDIA` input events.
 Speaker output after unplugging was also confirmed by listening. The profile
 starts with conservative headphone and speaker gains.
 
+### Optional 24-bit / 192 kHz headphones
+
+With WirePlumber 0.5, install the headphone-only rule using
+`sudo make WITH_HEADSET_HIRES=1 PREFIX=/usr install` (or `install-debian`).
+This option defaults to off. First install the matching kernel and topology:
+
+* Marble RX0 must preserve the negotiated format/rate instead of forcing S16/48,
+  and its private CodecDMA DAI must advertise 192 kHz.
+* AudioReach PCM and shared-memory messages must describe ALSA `S24_LE` as
+  24 valid bits in a 32-bit container, LSB-aligned with Q23. Packed 24-bit
+  messages do not match this ALSA format.
+* The MM2 playback topology must permit S24_LE at 192 kHz; leave speaker and
+  capture graphs unchanged.
+
+Validated with kernel `7.2.8-sm8475-gad041bd-headset-hires` (headset2 module
+payload), PipeWire 1.6.9 and WirePlumber 0.5.18: native S24/48 and S24/192 stereo
+listening, actual desktop ALSA S24_LE/192000 playback, and simultaneous S16/48000
+headset capture. This describes the digital transport; analogue effective
+resolution has not been measured. Speakers and microphones retain their own
+formats. Lower-rate content is resampled for the headphone output.
+
+After installing, restart the user's WirePlumber service with
+`systemctl --user restart wireplumber`. Remove
+`/usr/share/wireplumber/wireplumber.conf.d/99-marble-headset-hires.conf` and restart
+WirePlumber before reverting to a kernel/topology without these capabilities.
+Installing with the option disabled does not remove a previously installed rule.
+
 ### Additional Debian/Ubuntu integration
 
 This fork also owns the runtime support previously kept in Debian packaging:

@@ -7,6 +7,8 @@ CFLAGS ?= -O2 -Wall -Wextra
 LDFLAGS ?=
 # IMS needs newer libqmi APIs; the base support layer builds without them.
 WITH_IMS ?= 0
+# Enable only with the matching high-rate kernel and AudioReach topology.
+WITH_HEADSET_HIRES ?= 0
 IMS_PACKAGES = qmi-glib qrtr-glib gio-2.0 glib-2.0
 
 BIN = marble-touchboost
@@ -44,6 +46,10 @@ install: all
 	install -m 644 alsa/ucm2/conf.d/sm8450/SM8475-Xiaomi-Marble.conf $(DESTDIR)$(PREFIX)/share/alsa/ucm2/conf.d/sm8450/
 	install -d $(DESTDIR)$(PREFIX)/share/alsa/ucm2/Qualcomm/sm8450/xiaomi-marble
 	install -m 644 alsa/ucm2/Qualcomm/sm8450/xiaomi-marble/HiFi.conf $(DESTDIR)$(PREFIX)/share/alsa/ucm2/Qualcomm/sm8450/xiaomi-marble/
+ifeq ($(WITH_HEADSET_HIRES),1)
+	install -d $(DESTDIR)$(PREFIX)/share/wireplumber/wireplumber.conf.d
+	install -m 644 wireplumber/99-marble-headset-hires.conf $(DESTDIR)$(PREFIX)/share/wireplumber/wireplumber.conf.d/
+endif
 
 	# udev rules
 	install -d $(DESTDIR)$(PREFIX)/lib/udev/rules.d
